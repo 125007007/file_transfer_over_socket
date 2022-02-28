@@ -14,7 +14,7 @@ def main():
     client.connect(ADDR)
 
     """ Opening and reading the file data. """
-    file = open("data/yt.txt", "r")
+    file = open("test.txt", "r")
     data = file.read()
 
     """ Sending the filename to the server. """
