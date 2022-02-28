@@ -23,6 +23,11 @@ def main():
     """ Connecting to the server. """
     client.connect(ADDR)
 
+    # send dir name
+    client.send(yesterdays_date.encode(FORMAT))
+    msg = client.recv(SIZE).decode(FORMAT)
+    print(f"[SERVER]: {msg}")
+
     for filename in os.listdir(os.path.join(config["usb_drive_location"], yesterdays_date)):
         print(filename)
         """ Opening and reading the file data. """
