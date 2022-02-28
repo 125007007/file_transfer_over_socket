@@ -18,7 +18,7 @@ def main():
     data = file.read()
 
     """ Sending the filename to the server. """
-    client.send("yt.txt".encode(FORMAT))
+    client.send("test.txt".encode(FORMAT))
     msg = client.recv(SIZE).decode(FORMAT)
     print(f"[SERVER]: {msg}")
 
