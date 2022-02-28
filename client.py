@@ -24,7 +24,7 @@ def main():
     client.connect(ADDR)
 
     for filename in os.listdir(os.path.join(config["usb_drive_location"], yesterdays_date)):
-
+        print(filename)
         """ Opening and reading the file data. """
         file = open(filename, "r")
         data = file.read()
