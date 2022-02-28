@@ -1,4 +1,4 @@
-import socket
+import socket, os
 
 IP = socket.gethostbyname(socket.gethostname())
 PORT = 4455
@@ -22,6 +22,11 @@ def main():
         """ Server has accepted the connection from the client. """
         conn, addr = server.accept()
         print(f"[NEW CONNECTION] {addr} connected.")
+
+        # Receiving dir name from the client
+        dirname = conn.recv(SIZE).decode(FORMAT)
+        print(f"[RECV] Receiving the dir name.")
+        os.mkdir(dirname)
 
         """ Receiving the filename from the client. """
         filename = conn.recv(SIZE).decode(FORMAT)
