@@ -1,55 +1,37 @@
-import socket, os, json, datetime
-from time import sleep
+from socket import *
+import os
 
+CHUNKSIZE = 1_000_000
 
-IP = '192.168.1.16' # server ip address
-PORT = 4455
-ADDR = (IP, PORT)
-FORMAT = "utf-8"
-SIZE = 1024
+# Make a directory for the received files.
+os.makedirs('client',exist_ok=True)
 
-config_file = open('config.json')
-config = json.load(config_file)
-config_file.close()
+sock = socket()
+sock.connect(('localhost',5000))
+with sock,sock.makefile('rb') as clientfile:
+    while True:
+        raw = clientfile.readline()
+        if not raw: break # no more files, server closed connection.
 
-todays_date = datetime.date.today()
-yesterdays_date = str(todays_date - datetime.timedelta(days=1))
-print(os.path.join(config["usb_drive_location"], yesterdays_date))
+        filename = raw.strip().decode()
+        length = int(clientfile.readline())
+        print(f'Downloading {filename}...\n  Expecting {length:,} bytes...',end='',flush=True)
 
-def main():
-    """ Staring a TCP socket. """
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        path = os.path.join('client',filename)
+        os.makedirs(os.path.dirname(path),exist_ok=True)
 
-    """ Connecting to the server. """
-    client.connect(ADDR)
+        # Read the data in chunks so it can handle large files.
+        with open(path,'wb') as f:
+            while length:
+                chunk = min(length,CHUNKSIZE)
+                data = clientfile.read(chunk)
+                if not data: break
+                f.write(data)
+                length -= len(data)
+            else: # only runs if while doesn't break and length==0
+                print('Complete')
+                continue
 
-    # send dir name
-    client.send(yesterdays_date.encode(FORMAT))
-    msg = client.recv(SIZE).decode(FORMAT)
-    print(f"[SERVER]: {msg}")
-
-    for filename in os.listdir(os.path.join(config["usb_drive_location"], yesterdays_date)):
-        print(filename)
-        """ Opening and reading the file data. """
-        file = open(filename, "r")
-        data = file.read()
-
-        """ Sending the filename to the server. """
-        client.send(filename.encode(FORMAT))
-        msg = client.recv(SIZE).decode(FORMAT)
-        print(f"[SERVER]: {msg}")
-
-        """ Sending the file data to the server. """
-        client.send(data.encode(FORMAT))
-        msg = client.recv(SIZE).decode(FORMAT)
-        print(f"[SERVER]: {msg}")
-
-        """ Closing the file. """
-        file.close()
-
-    """ Closing the connection from the server. """
-    client.close()
-
-
-if __name__ == "__main__":
-    main()
+        # socket was closed early.
+        print('Incomplete')
+        break 
