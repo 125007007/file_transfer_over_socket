@@ -1,51 +1,34 @@
-import socket, os
+from socket import *
+import os
 
-IP = socket.gethostbyname(socket.gethostname())
-PORT = 4455
-ADDR = (IP, PORT)
-SIZE = 1024
-FORMAT = "utf-8"
+CHUNKSIZE = 1_000_000
 
-def main():
-    print("[STARTING] Server is starting.")
-    """ Staring a TCP socket. """
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock = socket()
+sock.bind(('',5000))
+sock.listen(1)
 
-    """ Bind the IP and PORT to the server. """
-    server.bind(ADDR)
+dir = '/media/pidrive/Snapshots/2022-03-01'
 
-    """ Server is listening, i.e., server is now waiting for the client to connected. """
-    server.listen()
-    print("[LISTENING] Server is listening.")
+while True:
+    print('Waiting for a client...')
+    client,address = sock.accept()
+    print(f'Client joined from {address}')
+    with client:
+        for path,dirs,files in os.walk(dir):
+            for file in files:
+                filename = os.path.join(path,file)
+                relpath = os.path.relpath(filename,dir)
+                filesize = os.path.getsize(filename)
 
-    while True:
-        """ Server has accepted the connection from the client. """
-        conn, addr = server.accept()
-        print(f"[NEW CONNECTION] {addr} connected.")
+                print(f'Sending {relpath}')
 
-        # Receiving dir name from the client
-        dirname = conn.recv(SIZE).decode(FORMAT)
-        print(f"[RECV] Receiving the dir name.")
-        os.mkdir(dirname)
+                with open(filename,'rb') as f:
+                    client.sendall(relpath.encode() + b'\n')
+                    client.sendall(str(filesize).encode() + b'\n')
 
-        """ Receiving the filename from the client. """
-        filename = conn.recv(SIZE).decode(FORMAT)
-        print(f"[RECV] Receiving the filename.")
-        file = open(filename, "w")
-        conn.send("Filename received.".encode(FORMAT))
-
-        """ Receiving the file data from the client. """
-        data = conn.recv(SIZE).decode(FORMAT)
-        print(f"[RECV] Receiving the file data.")
-        file.write(data)
-        conn.send("File data received".encode(FORMAT))
-
-        """ Closing the file. """
-        file.close()
-
-        """ Closing the connection from the client. """
-        conn.close()
-        print(f"[DISCONNECTED] {addr} disconnected.")
-
-if __name__ == "__main__":
-    main()
+                    # Send the file in chunks so large files can be handled.
+                    while True:
+                        data = f.read(CHUNKSIZE)
+                        if not data: break
+                        client.sendall(data)
+        print('Done.')
